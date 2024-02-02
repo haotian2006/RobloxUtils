@@ -1,9 +1,9 @@
 local Debris = {}
 Debris.__index = Debris
 
-local TIME_KEY = "__time__"
-local NAME_KEY = "__name__"
-local DESTROY_KEY = "__destroy__"
+local TIME_KEY = {"__time__"}
+local NAME_KEY = {"__name__"}
+local DESTROY_KEY = {"__destroy__"}
 
 local Folders = {}
 
@@ -45,10 +45,13 @@ function Debris:remove(Key)
 end
 
 function Debris:clearAll()
-    for i,v in self do
-        if type(i) == "number" then continue end 
-        Debris.remove(self ,i)
-    end
+    local time = self[TIME_KEY]
+    local name = self[NAME_KEY]
+    local callback = self[DESTROY_KEY]
+    table.clear(self)
+    self[TIME_KEY] = time
+    self[NAME_KEY] = name
+    self[DESTROY_KEY] = callback
 end
 
 function Debris:getSize()
@@ -75,11 +78,12 @@ function Debris:getName()
     return self[NAME_KEY]
 end
 
-function Debris.getFolder(Name:string,maxTime:number,DestroyCallBack:()->())
+function Debris.getFolder(Name:string,MaxTime:number,Destroy:()->())
+    assert(not Name, "[Debris]: Name is missing or nil")
     if Folders[Name] then
         return Folders[Name]
     end
-    local object = setmetatable({[TIME_KEY] = maxTime or 60,[NAME_KEY] = Name, [DESTROY_KEY] = DestroyCallBack}, Debris)
+    local object = setmetatable({[TIME_KEY] = MaxTime or 60,[NAME_KEY] = Name, [DESTROY_KEY] = Destroy}, Debris)
     Folders[Name] = object
     return object
 end
