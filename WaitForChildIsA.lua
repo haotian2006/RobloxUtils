@@ -4,9 +4,8 @@
 local function WaitForChildIsA(instance:Instance,Name:string,Type:string,MaxTime:number?):Instance?
     local running = coroutine.running()
     for _,part in instance:GetChildren() do
-       if part.Name == Name and part:IsA(Type) then
-            return part
-       end
+        if part.Name ~= Name or not part:IsA(Type) then continue end 
+        return part
     end
     local delayT
     local Child
