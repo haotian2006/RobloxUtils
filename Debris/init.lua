@@ -17,15 +17,18 @@ local function remove(object,Key)
     end
     local func = obj[DESTROY_KEY]
     if func then 
-        func(obj[1])
+        func(Key,obj[1])
     end
     object[Key] = nil
 end
 
-function Debris:add(Key,value)
+function Debris:set(Key,value)
     local sub = table.create(3)
     sub[1] = value
     sub[2] = task.delay(self[TIME_KEY], remove,self,Key)
+    if self[Key] then
+        self:remove(Key)
+    end
     self[Key] = sub
 end
 
@@ -39,7 +42,7 @@ function Debris:remove(Key)
     object[3] = false 
     local func = self[DESTROY_KEY]
     if func then 
-        func(object[1])
+        func(Key,object[1])
     end
     self[Key] = nil
 end
@@ -63,9 +66,13 @@ function Debris:getSize()
     return count
 end
 
+function Debris:has(Key)
+   return if self[Key] then true else false 
+end
+
 function Debris:get(Key)
     local a = self[Key]
-    if not a then return  end 
+    if not a then return end 
     a[3] = true
     return a[1]
 end
