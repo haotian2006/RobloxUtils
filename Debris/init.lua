@@ -7,29 +7,31 @@ local DESTROY_KEY = {"__destroy__"}
 
 local Folders = {}
 
-local function remove(object,Key)
-    local obj = object[Key]
-    if not obj then return end 
+local function remove(self,Key)
+    local obj = self[Key]
+    if not obj then return end
     if obj[3] then
-        obj[2] = task.delay(object[TIME_KEY],remove,object,Key)
+        obj[2] = task.delay(self[TIME_KEY],remove,self,Key)
         obj[3] = false
         return
     end
-    local func = obj[DESTROY_KEY]
+    local func = self[DESTROY_KEY]
     if func then 
         func(Key,obj[1])
     end
-    object[Key] = nil
+    self[Key] = nil
 end
 
 function Debris:set(Key,value)
     local sub = table.create(3)
     sub[1] = value
     sub[2] = task.delay(self[TIME_KEY], remove,self,Key)
+    local last
     if self[Key] then
-        self:remove(Key)
+        last = self:remove(Key)
     end
     self[Key] = sub
+    return last
 end
 
 function Debris:remove(Key)
@@ -45,6 +47,7 @@ function Debris:remove(Key)
         func(Key,object[1])
     end
     self[Key] = nil
+    return object[1]
 end
 
 function Debris:clearAll()
@@ -78,7 +81,9 @@ function Debris:get(Key)
 end
 
 function Debris:rawGet(Key)
-    return  self[Key]
+    local a = self[Key]
+    if not a then return end 
+    return  a[1]
 end
 
 function Debris:getName()
@@ -86,7 +91,7 @@ function Debris:getName()
 end
 
 function Debris.getFolder(Name:string,MaxTime:number,Destroy:()->())
-    assert(not Name, "[Debris]: Name is missing or nil")
+    assert(Name, "[Debris]: Name is missing or nil")
     if Folders[Name] then
         return Folders[Name]
     end

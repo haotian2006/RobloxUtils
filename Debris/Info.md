@@ -33,8 +33,8 @@ Returns the object stored in the key and does NOT refresh the destroy time.
 #### set(key:`any`,value:`any`): `any` | `nil`
 Adds the object to the folder. If the key already exists override it and returns the last value, else return nil. 
 
-#### remove(key:`any`)
-Removes the folder
+#### remove(key:`any`): `any` | `nil`
+Removes the object and returns it.
 
 ## Example
 ```lua
@@ -53,7 +53,7 @@ local myFolder = Debris.getFolder(
 myFolder:set("key1",1)
 myFolder:set("key2",2)
 myFolder:set(Vector3.new(3,3,3),3) -- Vector3s are a native types 
-
+ 
 task.wait(1)
 
 print(myFolder:get("key1")) --> 1
