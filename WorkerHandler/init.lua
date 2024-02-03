@@ -32,13 +32,13 @@ function WorkerManager:GetNextWorker()
     end
 end
 
-local INT32 = 2^31-1 --Increase this if you want
+local MAXID = 2^31-1 --Increase this if you want
 function WorkerManager:GetId()
     self.id += 1
     local id = self.id
     if self.threads[id] ~= nil then 
         return self:GetId()
-    elseif id >= INT32 then
+    elseif id >= MAXID then
         self.id = 0
         return self:GetId()
     end
