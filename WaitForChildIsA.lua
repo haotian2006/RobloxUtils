@@ -1,4 +1,4 @@
---A custom waitforchild fundction that also checks if its the wanted type
+--A custom waitforchild function that also checks if its the wanted type
 --made for fun because someone wanted it.
 
 local function WaitForChildIsA(instance:Instance,Name:string,Type:string,MaxTime:number?):Instance?
