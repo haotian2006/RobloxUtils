@@ -62,13 +62,19 @@ function WorkerManager:DoWork(taskToDo,...)
 end
 
   --[[
-Name is the name of this worker folder
+name is the name of this worker folder
 amt is how many actors to create
 toRequire is the task module script to require
 actor is optional, you can use a custom actor but just make sure to follow the format in ActorServer/Client script (same name and BindToMessages)
 rest of the params are info being sent to BindToMessage("Init",...) in the actor
  ]]
-function WorkerManager.create(name,amt,toRequire,actor,...)
+
+local Folders = {}
+
+function WorkerManager.get(name,amt,toRequire,actor,...)
+    if Folders[name] then
+       return Folders[name]
+    end
     local Bindable = Instance.new("BindableEvent")
     Bindable.Name = name
     Bindable.Parent = script
@@ -81,6 +87,7 @@ function WorkerManager.create(name,amt,toRequire,actor,...)
         table.insert(self.Workers,worker)
         worker:SendMessage("Init",Bindable,toRequire,...)
    end
+   Folders[name] = self
    return self
 end
 return WorkerManager
