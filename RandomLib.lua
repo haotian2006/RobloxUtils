@@ -41,11 +41,9 @@ end
 
 --Moves x steps 
 function RandomLib:Consume(x)
-    local new = self:Fork()
     for i = 1,x do
-        new:NextNumber()
+        self:NextNumber()
     end
-    return new
 end
 
 --Clones a random but is on the same step
