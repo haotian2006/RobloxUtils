@@ -21,7 +21,7 @@ end
 
 function WorkerManager:GetNextWorker()
     local Workers = self.Workers
-    if #Workers == 0 then error("TABLE IS EMPTY") end 
+    if #Workers == 0 then error("WORKER TABLE IS EMPTY") end 
     self.WorkerIndex +=1
     local Index = self.WorkerIndex
     if Workers[Index] then
