@@ -44,7 +44,7 @@ function WorkerManager:GetId()
     return id 
 end
 
-function WorkerManager:RunTask(...)
+function WorkerManager:RunTaskALl(...)
     for i,actor:Actor in self.Workers do
         actor:SendMessage("Run",...)
     end
