@@ -3,15 +3,16 @@ local Worker = {}
 WorkerManager.__index = WorkerManager
 
 local Runservice = game:GetService("RunService")
-
-local DeafultActor =  if Runservice:IsServer() then script.ActorServer else script.ActorClient
+ 
+local DeafaultActor =  if Runservice:IsServer() then script.ActorServer else script.ActorClient
+local DeafaultWorkers = 10
 
 local workersFolder = Instance.new("Folder") 
 workersFolder.Name = "Workers"
 workersFolder.Parent = if Runservice:IsServer() then game:GetService("ServerScriptService") else game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts")
 
 function Worker.new(index,actor)
-    local clone = (actor or DeafultActor):Clone()
+    local clone = (actor or DeafaultActor):Clone()
     clone.Name = index
     clone.Parent = workersFolder
     clone.Main.Enabled = true 
@@ -68,7 +69,7 @@ function WorkerManager.create(name,amt,toRequire,actor,...)
     Bindable.Event:connect(function(id,...)
         coroutine.resume(self.threads[id],...)
    end)
-   for i =1,amt do
+   for i =1,amt or DeafaultWorkers do
         local worker = Worker.new(i,actor)
         table.insert(self.Workers,worker)
         worker:SendMessage("Init",Bindable,toRequire,...)
