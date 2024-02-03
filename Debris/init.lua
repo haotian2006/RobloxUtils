@@ -37,9 +37,9 @@ end
 function Debris:remove(Key)
     local object = self[Key]
     if not object then return end 
-    local t = object[2]
-    if t then
-        task.cancel(t)
+    local thread = object[2]
+    if thread then
+        task.cancel(thread)
     end
     object[3] = false 
     local func = self[DESTROY_KEY]
@@ -74,16 +74,16 @@ function Debris:has(Key)
 end
 
 function Debris:get(Key)
-    local a = self[Key]
-    if not a then return end 
-    a[3] = true
-    return a[1]
+    local obj = self[Key]
+    if not obj then return end 
+    obj[3] = true
+    return obj[1]
 end
 
 function Debris:rawGet(Key)
-    local a = self[Key]
-    if not a then return end 
-    return  a[1]
+    local obj = self[Key]
+    if not obj then return end 
+    return  obj[1]
 end
 
 function Debris:getName()
