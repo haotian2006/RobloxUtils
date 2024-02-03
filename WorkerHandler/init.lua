@@ -61,6 +61,13 @@ function WorkerManager:DoWork(taskToDo,...)
     return unpack(data)
 end
 
+  --[[
+Name is the name of this worker folder
+amt is how many actors to create
+toRequire is the task module script to require
+actor is optional, you can use a custom actor but just make sure to follow the format in ActorServer/Client script (same name and BindToMessages)
+rest of the params are info being sent to BindToMessage("Init",...) in the actor
+ ]]
 function WorkerManager.create(name,amt,toRequire,actor,...)
     local Bindable = Instance.new("BindableEvent")
     Bindable.Name = name
