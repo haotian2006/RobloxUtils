@@ -748,7 +748,7 @@ local serReaduInt = Reader.readuInt
 
 do
     --//Custom Schema
-    function Serializer.mapSchema<k,v>(keyType:option,value:option)
+    function Serializer.mapSchema(keyType:option,value:option)
         local writer = getWriterFrom(keyType)
         local reader = getReaderFrom(keyType)
         local valueWriter = getWriterFrom(value)
@@ -757,7 +757,7 @@ do
             error("Invalid key or value type")
         end
         return {
-            writer = function(s:serializer,t:{[k]:v})
+            writer = function(s:serializer,t:{})
                 local size = 0
                 local start = s.cursor
                 realloc(s,3)
@@ -769,7 +769,7 @@ do
                 end
                 writeu24(s.buffer,start,size)
             end,
-            reader = function(s:serializer): {[k]:v}
+            reader = function(s:serializer): {}
                 local size = readu24(s.buffer,s.cursor)
                 s.cursor += 3
                 local t = {}
@@ -783,21 +783,21 @@ do
         }
     end
 
-    function Serializer.arraySchema<v>(valueType: option)
+    function Serializer.arraySchema(valueType: option)
         local valueWriter = getWriterFrom(valueType)
         local valueReader = getReaderFrom(valueType)
         if not valueWriter or not valueReader then
             error("Invalid value type")
         end
         return {
-            writer = function(s:serializer,t:{v})
+            writer = function(s:serializer,t:{})
                 local size = #t
                 serWriteuInt(s, size)
                 for i = 1,size do
                     valueWriter(s,t[i])
                 end
             end,
-            reader = function(s:serializer): {v}
+            reader = function(s:serializer)
                 local size = serReaduInt(s)
                 local t = table.create(size)
                 for i = 1,size do
