@@ -131,7 +131,7 @@ print(BitArray.get(arr2,1)) --> 15
 ```
 
 Full Script
-```
+```lua
 local BitArray = require(Path.To.Module)
 
 local array = BitArray.new(2,4)
