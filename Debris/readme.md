@@ -21,7 +21,7 @@ Returns how many objects are in the folder. Warning this method is O(n).
 Clears and remove all the objects in the object.
 
 #### has(key:`any`) `boolean`
-Returns the if the key exists in the Folder 
+Returns the true if the key exists in the Folder 
 
 
 #### get(key:`any`): `any`
