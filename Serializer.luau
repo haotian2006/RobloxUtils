@@ -837,6 +837,71 @@ do
             end
         }
     end
+
+    local lshift_lookup = {}
+    for i = 1, 32 do
+        lshift_lookup[i] = bit32.lshift(1,i-1)
+    end
+    
+    function Serializer.argumentSchema(...: option)
+        local writers = {}
+        local readers = {}
+
+        local arr = {...}
+        for index, option:option in arr do
+            local writer = getWriterFrom(option)
+            local reader = getReaderFrom(option)
+            if not writer or not reader then
+                error("Invalid type for argument: " .. index)
+            end
+            writers[index] = writer
+            readers[index] = reader
+        end
+
+        local size = #arr
+        assert(size < 33,"Too many arguments")
+        local toAllocate = math.ceil(size/8)
+        local reader = Reader.readu8
+        local writer = buffer.writeu8
+
+        if size >8 and size <17 then
+            reader = Reader.readu16
+            writer = buffer.writeu16
+        elseif size >16 and size <25 then
+            reader = Reader.readu24
+            writer = writeu24
+        elseif size >24 then
+            reader = Reader.readu32
+            writer = buffer.writeu32
+        end
+
+        return {
+            writer = function(s: serializer, t: { [string]: any })
+                local bits = 0
+                local start = s.cursor
+                realloc(s,toAllocate)
+                s.cursor += toAllocate
+                for idx, writer in writers do
+                    local value = t[idx]
+                    if value then
+                        writer(s, value)
+                    else
+                        bits += lshift_lookup[idx]
+                    end           
+                end
+                writer(s.buffer, start, bits)
+            end,
+            reader = function(s: serializer,writeTo:{}?): { [string]: any }
+                local t = writeTo or {}
+                local bits = reader(s)
+                for idx, reader in readers do
+                    t[idx] = if bits % 2 == 0 then reader(s) else nil
+                    bits //= 2
+                end
+                return t
+            end
+        }
+    end
 end
 
 for k:string,f in Writer::any do
