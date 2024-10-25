@@ -912,13 +912,14 @@ Serializer.reader = Reader
 local function example()
     do
         print("------Basic Example------")
-        local writer = Serializer.newWriter(100) -- allocate 100 bytes
+        local writer = Serializer.newWriter(100) -- allocate 100 bytes (newWriter and newReader makes a copy of Writer/Reader with table.clone)
         writer:writeu8(255)
         writer:writeu16(65535)
         writer:writeu24(16777215)
         writer:writeString("hello world")
         writer:writeOption(Serializer.types.f64,1.234) -- same as a number
-        writer:writeAny("this is a string") -- currently allowed types: number|string|buffer|Vector3|Vector2|CFrame|nil|boolean
+        writer:writeAny("this is a string") -- uses 1 extra byte, currently allowed types: number|string|buffer|Vector3|Vector2|CFrame|nil|boolean
+        Serializer.writer.writeBool(writer,true) -- directly using the writer
     
         local buf = writer:toBuffer() -- convert to buffer
         local reader = Serializer.newReader(buf) -- create reader from buffer
@@ -929,6 +930,7 @@ local function example()
         print(reader:readString()) -- hello world
         print(reader:readOption(Serializer.types.f64)) -- 255
         print(reader:readAny()) -- this is a string
+        print(Serializer.reader.readBool(reader)) -- directly using the reader | true
     end
 
     --attaching things
@@ -943,8 +945,32 @@ local function example()
         local reader = Serializer.attachReader(ser) -- metatable based 
         print(reader:readu8()) -- 255
         print(reader:readu16()) -- 65535
+    end
+    --Reusing
+    do
+        print("------Reusing Example------")
+        local writer = Serializer.newWriter()
+        writer:saveLocation() -- saves the location at the current cursor (0)
+        writer:writeString("hello")
+        local buf = writer:toBuffer()
+        print(buffer.readstring(buf, 0,6)) -- hello
+        writer:reuse() -- goes back to the saved location (0)
+        writer:writeString("world")
+        local buf2 = writer:toBuffer()
+        print(buffer.readstring(buf2, 0,6)) -- world
+    
+        local b = buffer.create(10)
+        buffer.writestring(b,0,"example")
+        buffer.writestring(b,5,"test")
+        local ser = Serializer.new(b)
+        ser.cursor = 9
+        writer:reuse(ser) -- moves the data from ser to writer
+        writer:writeu8(1)
 
-
+        local buf3 = writer:toBuffer()
+        print(buffer.readstring(buf3, 0,7)) -- example
+        print(buffer.readstring(buf3, 5,4)) -- test
+        print(buffer.readu8(buf3, 9)) -- 1
     end
 
     --//writing collections
