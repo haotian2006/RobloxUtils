@@ -21,37 +21,20 @@ SER_TYPES.cframe = 15
 SER_TYPES.buffer = 16
 SER_TYPES.bool = 17
 SER_TYPES.any = 18
-SER_TYPES.enums={'u8','i8','u16','i16','u24','i24','u32','i32','f32','f64','uint','vector3','vector2','string','cframe','buffer','bool','any',}
 
-type Enums = {
-    u8 : 'enum: SerializerTypes'|'val: 1'| number,
-    i8 : 'enum: SerializerTypes'|'val: 2'| number,
-    u16 : 'enum: SerializerTypes'|'val: 3'| number,
-    i16 : 'enum: SerializerTypes'|'val: 4'| number,
-    u24 : 'enum: SerializerTypes'|'val: 5'| number,
-    i24 : 'enum: SerializerTypes'|'val: 6'| number,
-    u32 : 'enum: SerializerTypes'|'val: 7'| number,
-    i32 : 'enum: SerializerTypes'|'val: 8'| number,
-    f32 : 'enum: SerializerTypes'|'val: 9'| number,
-    f64 : 'enum: SerializerTypes'|'val: 10'| number,
-    uint : 'enum: SerializerTypes'|'val: 11'| number,
-    vector3 : 'enum: SerializerTypes'|'val: 12'| number,
-    vector2 : 'enum: SerializerTypes'|'val: 13'| number,
-    string : 'enum: SerializerTypes'|'val: 14'| number,
-    cframe : 'enum: SerializerTypes'|'val: 15'| number,
-    buffer : 'enum: SerializerTypes'|'val: 16'| number,
-    bool : 'enum: SerializerTypes'|'val: 17'| number,
-    any : 'enum: SerializerTypes'|'val: 18'| number,
-    enums: {string} 
-};
+do
+    local enums = {}
+    for i,v in SER_TYPES do
+        enums[v] = i
+    end
+    SER_TYPES.enums = enums
+end
 
-
-export type SerializerTypes = 'enum: SerializerTypes' | number| 'val: 1'| 'val: 2'| 'val: 3'| 'val: 4'| 'val: 5'| 'val: 6'| 'val: 7'| 'val: 8'| 'val: 9'| 'val: 10'| 'val: 11'| 'val: 12'| 'val: 13'| 'val: 14'| 'val: 15'| 'val: 16'| 'val: 17'| 'val: 18'
 ------------------------------------------------------------------------------------------
 
 local Serializer = {}
 
-Serializer.types = SER_TYPES::Enums
+Serializer.types = SER_TYPES
 
 local Writer,Reader = {},{}
 local iWriter,iReader = {},{}
@@ -85,7 +68,7 @@ export type Schema<T> = {
 
 export type SerializerAny = number|string|buffer|Vector3|Vector2|CFrame|nil|boolean
 
-export type option = SerializerTypes&Schema<any>
+export type option = number&Schema<any>
 
 export type writer = serializer&typeof(Writer)
 
@@ -457,12 +440,12 @@ function Writer.writeBufferRaw(s:serializer, value: buffer,start:number?,finish:
     bufferCopy(b, p, value, init, len)
 end
 
-function Writer.writeOption(s: serializer, value: any, option: option)
+function Writer.writeOption(s: serializer, option: option, value: any,...:any)
     local writer = getWriterFrom(option)
     if not writer then
         error("Invalid option | must be a valid enum or custom type")
     end
-    writer(s,value)
+    writer(s,value,...)
 end
 
 function Writer.writeBool(s: serializer, value: boolean)
@@ -709,13 +692,14 @@ do
         return value
     end
 
-    function Reader.readOption(s: serializer,option: option): any
+    function Reader.readOption(s: serializer,option: option,...:any): any
         local reader = getReaderFrom(option)
         if not reader then
             error("Invalid option | must be a valid enum or custom type")
         end
-        return reader(s)
+        return reader(s,...)
     end
+
 
     function Reader.readBuffer(s: serializer): buffer
         local value,index = readBuffer(s.buffer,s.cursor)
@@ -797,9 +781,9 @@ do
                     valueWriter(s,t[i])
                 end
             end,
-            reader = function(s:serializer)
+            reader = function(s:serializer,writeTo:{}?)
                 local size = serReaduInt(s)
-                local t = table.create(size)
+                local t = writeTo or table.create(size)
                 for i = 1,size do
                     t[i] = valueReader(s)
                 end
@@ -828,8 +812,8 @@ do
                     writer(s, t[str])
                 end
             end,
-            reader = function(s: serializer): { [string]: any }
-                local t = {}
+            reader = function(s: serializer,writeTo:{}?): { [string]: any }
+                local t = writeTo or {}
                 for str, reader in readers do
                     t[str] = reader(s)
                 end
@@ -876,13 +860,13 @@ do
         end
 
         return {
-            writer = function(s: serializer, t: { [string]: any })
+            writer = function(s: serializer, ...:any)
                 local bits = 0
                 local start = s.cursor
                 realloc(s,toAllocate)
                 s.cursor += toAllocate
                 for idx, writer in writers do
-                    local value = t[idx]
+                    local value = select(idx,...)
                     if value then
                         writer(s, value)
                     else
@@ -924,5 +908,103 @@ table.freeze(Reader)
 
 Serializer.writer = Writer
 Serializer.reader = Reader
+
+local function example()
+    do
+        local writer = Serializer.newWriter(100) -- allocate 100 bytes
+        writer:writeu8(255)
+        writer:writeu16(65535)
+        writer:writeu24(16777215)
+        writer:writeString("hello world")
+        writer:writeOption(Serializer.types.f64,1.234) -- same as a number
+        writer:writeAny("this is a string") -- currently allowed types: number|string|buffer|Vector3|Vector2|CFrame|nil|boolean
+    
+        local buf = writer:toBuffer() -- convert to buffer
+        local reader = Serializer.newReader(buf) -- create reader from buffer
+    
+        print(reader:readu8()) -- 255
+        print(reader:readu16()) -- 65535
+        print(reader:readu24()) -- 16777215
+        print(reader:readString()) -- hello world
+        print(reader:readOption(Serializer.types.f64)) -- 255
+        print(reader:readAny()) -- this is a string
+    end
+
+    --//writing collections
+    do
+        --//array
+        local arraySchema = Serializer.arraySchema(Serializer.types.u8) -- array of u8
+        local writer = Serializer.newWriter()
+        writer:writeOption(arraySchema,{1,2,3,4,5})
+        --or arraySchema.writer(writer,{1,2,3,4,5})
+        local buf = writer:toBuffer()
+        local reader = Serializer.newReader(buf)
+        local array = reader:readOption(arraySchema)
+        --or arraySchema.reader(reader)
+        print(table.concat(array,",")) -- 1,2,3,4,5
+    end
+
+    do 
+        --//map
+        local mapSchema = Serializer.mapSchema(Serializer.types.string,Serializer.types.f64) -- key string with f64 values
+        local writer = Serializer.newWriter()
+        writer:writeOption(mapSchema,{["hello"] = 1.234,["world"] = 5.678})
+        
+        local buf = writer:toBuffer()
+        local reader = Serializer.newReader(buf)
+        local map = reader:readOption(mapSchema)
+        for k,v in pairs(map) do
+            print(k,'=',v)
+        end
+    end
+
+    do
+        --//struct
+        local structSchema = Serializer.structSchema({
+            x = Serializer.types.f64,
+            y = Serializer.types.f64,
+            z = Serializer.types.f64,
+            name = Serializer.types.string
+        })
+        local writer = Serializer.newWriter()
+        writer:writeOption(structSchema,{x = 1,y = 2,z = 3,name = "hello"})
+        local buf = writer:toBuffer()
+        local reader = Serializer.newReader(buf)
+        local struct = reader:readOption(structSchema)
+        for k,v in pairs(struct) do
+            print(k,'=',v)
+        end
+    end
+
+    do
+        --//argumentSchema are useful for function arguments as they can be the given type or nil (saves memory)
+        local argSchema = Serializer.argumentSchema(Serializer.types.u8,Serializer.types.u16,Serializer.types.f64)
+        do
+            local writer = Serializer.newWriter()
+            local args1 = {1,3,3.14}
+            writer:writeOption(argSchema,unpack(args1))
+            local buf = writer:toBuffer()
+            print("bytes: ",buffer.len(buf)) -- 12
+            local reader = Serializer.newReader(buf)
+            local args = reader:readOption(argSchema)
+            table.foreach(args, print) -- 1,3,3.14
+        end
+        do
+            -- if we were not to send the last argument
+            local writer = Serializer.newWriter()
+            local args1 = {1,3,nil}
+            writer:writeOption(argSchema,unpack(args1))
+            local buf = writer:toBuffer()
+            print("bytes: ",buffer.len(buf)) -- 4 (save 8 bytes because were not sending a f64)
+            local reader = Serializer.newReader(buf)
+            local args = reader:readOption(argSchema)
+            table.foreach(args, print) -- 1,3
+        end
+    end
+
+    
+end
+
+example()
 
 return table.freeze(Serializer)
