@@ -917,6 +917,7 @@ local function example()
         writer:writeu16(65535)
         writer:writeu24(16777215)
         writer:writeString("hello world")
+        writer:tryRealloc(101) -- manually reallocating buffer
         writer:writeOption(Serializer.types.f64,1.234) -- same as a number
         writer:writeAny("this is a string") -- uses 1 extra byte, currently allowed types: number|string|buffer|Vector3|Vector2|CFrame|nil|boolean
         Serializer.writer.writeBool(writer,true) -- directly using the writer
@@ -949,12 +950,15 @@ local function example()
     --Reusing
     do
         print("------Reusing Example------")
-        local writer = Serializer.newWriter()
-        writer:saveLocation() -- saves the location at the current cursor (0)
+        local writer = Serializer.newWriter(0)
+        print(writer.buffer) 
+        writer:saveLocation() -- saves the location at the current cursor and the current buffer
         writer:writeString("hello")
+        print(writer.buffer) -- serializer was resized so different buffer
         local buf = writer:toBuffer()
         print(buffer.readstring(buf, 0,6)) -- hello
-        writer:reuse() -- goes back to the saved location (0)
+        writer:reuse() -- goes back to the saved location and the original buffer
+        print(writer.buffer) -- original buffer
         writer:writeString("world")
         local buf2 = writer:toBuffer()
         print(buffer.readstring(buf2, 0,6)) -- world
@@ -964,7 +968,7 @@ local function example()
         buffer.writestring(b,5,"test")
         local ser = Serializer.new(b)
         ser.cursor = 9
-        writer:reuse(ser) -- moves the data from ser to writer
+        writer:reuse(ser) -- moves the buffer and cursor from ser to writer
         writer:writeu8(1)
 
         local buf3 = writer:toBuffer()
