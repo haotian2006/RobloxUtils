@@ -911,6 +911,7 @@ Serializer.reader = Reader
 
 local function example()
     do
+        print("------Basic Example------")
         local writer = Serializer.newWriter(100) -- allocate 100 bytes
         writer:writeu8(255)
         writer:writeu16(65535)
@@ -930,9 +931,38 @@ local function example()
         print(reader:readAny()) -- this is a string
     end
 
+    --attaching things
+    do
+        print("------Attaching Example------")
+        local ser = Serializer.new()
+        local writer = Serializer.attachWriter(ser) -- metatable based 
+        writer:writeu8(255)
+        writer:writeu16(65535)
+        
+        ser.cursor = 0
+        local reader = Serializer.attachReader(ser) -- metatable based 
+        print(reader:readu8()) -- 255
+        print(reader:readu16()) -- 65535
+
+
+    end
+
     --//writing collections
+    --// You could write your own following the format starting at line: 734
+    --[[
+        they just need to return a table with a writer and reader function
+        {
+            writer = function(s:serializer,...any)
+                --//write to buffer
+            end,
+            reader = function(s:serializer,...any): any
+                --//read from buffer
+            end    
+        }
+    ]]
     do
         --//array
+        print("------Array Example------")
         local arraySchema = Serializer.arraySchema(Serializer.types.u8) -- array of u8
         local writer = Serializer.newWriter()
         writer:writeOption(arraySchema,{1,2,3,4,5})
@@ -946,6 +976,7 @@ local function example()
 
     do 
         --//map
+        print("------Map Example------")
         local mapSchema = Serializer.mapSchema(Serializer.types.string,Serializer.types.f64) -- key string with f64 values
         local writer = Serializer.newWriter()
         writer:writeOption(mapSchema,{["hello"] = 1.234,["world"] = 5.678})
@@ -960,6 +991,7 @@ local function example()
 
     do
         --//struct
+        print("------Struct Example------")
         local structSchema = Serializer.structSchema({
             x = Serializer.types.f64,
             y = Serializer.types.f64,
@@ -973,11 +1005,12 @@ local function example()
         local struct = reader:readOption(structSchema)
         for k,v in pairs(struct) do
             print(k,'=',v)
-        end
+        end -- x=1,y=2,z=3,name=hello
     end
 
     do
-        --//argumentSchema are useful for function arguments as they can be the given type or nil (saves memory)
+        print("------Argument Example------")
+        --//argumentSchema are useful for function arguments as they can be the given type or nil (saves memory) (has a max of 32 arguments)
         local argSchema = Serializer.argumentSchema(Serializer.types.u8,Serializer.types.u16,Serializer.types.f64)
         do
             local writer = Serializer.newWriter()
