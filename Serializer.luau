@@ -725,11 +725,14 @@ do
 
 end
 
+local serWriteu8 = Writer.writeu8
+local serWriteu16 = Writer.writeu16
 local serWriteu24 = Writer.writeu24
 local serWriteuInt = Writer.writeuInt
 local serReadu24 = Reader.readu24
 local serReaduInt = Reader.readuInt
-
+local serReadu16 = Reader.readu16
+local serReadu8 = Reader.readu8
 do
     --//Custom Schema
     function Serializer.mapSchema(keyType:option,value:option)
@@ -816,6 +819,82 @@ do
                 local t = writeTo or {}
                 for str, reader in readers do
                     t[str] = reader(s)
+                end
+                return t
+            end
+        }
+    end
+
+    
+    function Serializer.optional(type:option)
+        local writer = getWriterFrom(type)
+        local reader = getReaderFrom(type)
+        if not writer or not reader then
+            error("Invalid type for optional")
+        end
+        return {
+            writer = function(s: serializer, t: any)
+                if t ~= nil then
+                    serWriteu8(s, 1)
+                    writer(s, t)
+                else
+                    serWriteu8(s, 0)
+                end
+            end,
+            reader = function(s: serializer): any
+                local hasValue = serReadu8(s)
+                if hasValue == 0 then
+                    return nil
+                end
+                return reader(s)
+            end
+        }
+    end
+
+    function Serializer.optionalStructSchema(struct:{[string]:option})
+        local writers = {}
+        local readers = {}
+        local indexToName = {}
+        local nameToIndex = {}
+
+        local index = 0
+        for key, option:option in struct do
+            local writer = getWriterFrom(option)
+            local reader = getReaderFrom(option)
+            if not writer or not reader then
+                error("Invalid field type for key: " .. key)
+            end
+            index+=1
+            writers[index] = writer
+            readers[index] = reader
+            indexToName[index] = key
+            nameToIndex[key] = index
+        end
+
+        return {
+            writer = function(s: serializer, t: { [string]: any })
+                local start = s.cursor
+                realloc(s, 3)
+                s.cursor += 3
+                for i,v in t do
+                    local index = nameToIndex[i]
+                    if index then
+                        serWriteuInt(s,index)
+                        writers[index](s,v)
+                    end
+                end
+                writeu24(s.buffer,start,s.cursor-start-3)
+            end,
+            reader = function(s: serializer,writeTo:{}?): { [string]: any }
+                local t = writeTo or {}
+                local size = serReadu24(s)
+                local endCursor = s.cursor + size
+                while s.cursor < endCursor do
+                    local index = serReaduInt(s)
+                    local key = indexToName[index]
+                    if key then
+                        t[key] = readers[index](s)
+                    end
                 end
                 return t
             end
@@ -1036,6 +1115,43 @@ local function example()
         for k,v in pairs(struct) do
             print(k,'=',v)
         end -- x=1,y=2,z=3,name=hello
+    end
+
+    do
+        --//optional
+        print("------Optional Example------")
+        local optionalSchema = Serializer.optional(Serializer.types.f64)
+        local writer = Serializer.newWriter()
+        writer:writeOption(optionalSchema,1.234)
+        writer:writeOption(optionalSchema,nil)
+        local buf = writer:toBuffer()
+        local reader = Serializer.newReader(buf)
+        print(reader:readOption(optionalSchema)) -- 1.234
+        print(reader:readOption(optionalSchema)) -- nil
+    end
+
+    do
+        print("------Optional Struct Example------")
+        local optionalStructSchema = Serializer.optionalStructSchema({
+            x = Serializer.types.f64,
+            y = Serializer.types.f64,
+            z = Serializer.types.f64,
+            name = Serializer.types.string
+        })
+        local writer = Serializer.newWriter()
+        writer:writeOption(optionalStructSchema,{x = 1,y = 2,z = 3,name = "hello"})
+        writer:writeOption(optionalStructSchema,{x = 1,y = 2,z = 3})
+        local buf = writer:toBuffer()
+        local reader = Serializer.newReader(buf)
+        local struct = reader:readOption(optionalStructSchema)
+        for k,v in pairs(struct) do
+            print(k,'=',v)
+        end -- x=1,y=2,z=3,name=hello
+        print("------")
+        local struct = reader:readOption(optionalStructSchema)
+        for k,v in pairs(struct) do
+            print(k,'=',v)
+        end -- x=1,y=2,z=3,name=nil
     end
 
     do
