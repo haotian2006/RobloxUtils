@@ -798,27 +798,33 @@ do
     function Serializer.structSchema(struct:{[string]:option})
         local writers = {}
         local readers = {}
-
-        for key, option:option in struct do
+        
+        local indexToName = {}
+        for key in struct do
+            table.insert(indexToName,key)
+        end
+        table.sort(indexToName)
+        for idx,key in indexToName do
+            local option = struct[key]
             local writer = getWriterFrom(option)
             local reader = getReaderFrom(option)
             if not writer or not reader then
                 error("Invalid field type for key: " .. key)
             end
-            writers[key] = writer
-            readers[key] = reader
+            writers[idx] = writer
+            readers[idx] = reader
         end
 
         return {
             writer = function(s: serializer, t: { [string]: any })
-               for str, writer in writers do
-                    writer(s, t[str])
+               for idx, writer in writers do
+                    writer(s, t[indexToName[idx]])
                 end
             end,
             reader = function(s: serializer,writeTo:{}?): { [string]: any }
                 local t = writeTo or {}
-                for str, reader in readers do
-                    t[str] = reader(s)
+                for idx, reader in readers do
+                    t[indexToName[idx]] = reader(s)
                 end
                 return t
             end
@@ -854,21 +860,24 @@ do
     function Serializer.optionalStructSchema(struct:{[string]:option})
         local writers = {}
         local readers = {}
-        local indexToName = {}
         local nameToIndex = {}
 
-        local index = 0
-        for key, option:option in struct do
+        local indexToName = {}
+        for key in struct do
+            table.insert(indexToName,key)
+        end
+        table.sort(indexToName)
+
+        for idx,key in indexToName do
+            local option = struct[key]
             local writer = getWriterFrom(option)
             local reader = getReaderFrom(option)
             if not writer or not reader then
                 error("Invalid field type for key: " .. key)
             end
-            index+=1
-            writers[index] = writer
-            readers[index] = reader
-            indexToName[index] = key
-            nameToIndex[key] = index
+            writers[idx] = writer
+            readers[idx] = reader
+            nameToIndex[key] = idx
         end
 
         return {
