@@ -1530,7 +1530,7 @@ do
 				end
 				writerH(s.buffer, start, bits)
 			end,
-			reader = function(s: serializer, writeTo: {}?): { [string]: any }
+			reader = function(s: serializer, writeTo: {}?): {any }
 				local t = writeTo or {}
 				local bits = readerH(s)
 				for idx, reader in readers do
