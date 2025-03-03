@@ -82,7 +82,7 @@ end
 
 --[[Example
 local settings = {
-    firstOctave = 4,
+    firstOctave = -4,
     amplitudes = {0.5,0.25,0.125,0.0625},
 }
 
