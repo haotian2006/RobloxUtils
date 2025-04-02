@@ -710,9 +710,9 @@ do
 		buffer.writef32(b, p + 4, pos.Y)
 		buffer.writef32(b, p + 8, pos.Z)
 
-		buffer.writeu16(b, p + 12, (axis.X + 1) * (65535/2))
-		buffer.writeu16(b, p + 14, (axis.Y + 1) * (65535/2))
-		buffer.writeu16(b, p + 16, (axis.Z + 1) * (65535/2))
+		buffer.writei16(b, p + 12, (axis.X ) * 32767)
+		buffer.writei16(b, p + 14, (axis.Y + 1) * 32767)
+		buffer.writei16(b, p + 16, (axis.Z + 1) * 32767)
 	end
 
 	--[=[
@@ -894,10 +894,11 @@ Serializer.readString = readString
 
 local function readCFrame(b: buffer, index: number): (CFrame, number)
 	local x, y, z = buffer.readf32(b, index), buffer.readf32(b, index + 4), buffer.readf32(b, index + 8)
-	local axisX =buffer.readu16(b, index+12) * (2 / 65535) - 1 
-	local axisY =buffer.readu16(b, index+14) * (2 / 65535) - 1
-	local axisZ =buffer.readu16(b, index+16) * (2 / 65535) - 1
+	local axisX =buffer.readi16(b, index+12) /32767
+	local axisY =buffer.readi16(b, index+14) /32767
+	local axisZ =buffer.readi16(b, index+16) /32767
 	local w = math.sqrt(1 - axisX^2 - axisY^2 - axisZ^2)
+	
 	return CFrame.new(x, y, z, axisX, axisY, axisZ, w), index + 18
 end
 
