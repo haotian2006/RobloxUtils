@@ -711,8 +711,8 @@ do
 		buffer.writef32(b, p + 8, pos.Z)
 
 		buffer.writei16(b, p + 12, (axis.X ) * 32767)
-		buffer.writei16(b, p + 14, (axis.Y + 1) * 32767)
-		buffer.writei16(b, p + 16, (axis.Z + 1) * 32767)
+		buffer.writei16(b, p + 14, (axis.Y ) * 32767)
+		buffer.writei16(b, p + 16, (axis.Z ) * 32767)
 	end
 
 	--[=[
